@@ -1,0 +1,47 @@
+{
+  "name": "smart-server-room-kelapa",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "setup": "tsx scripts/setup.ts",
+    "migrate": "tsx scripts/migrate.ts",
+    "simulator": "tsx scripts/simulator-v2.ts",
+    "test": "tsx --test tests/monitoring.test.ts tests/mysql-sync.test.ts",
+    "test:e2e": "tsx scripts/verify-monitoring-e2e.ts",
+    "simulator:legacy": "tsx scripts/simulator.ts",
+    "worker": "tsx scripts/monitor-worker.ts",
+    "import:sql": "tsx scripts/import-sql.ts",
+    "test:legacy": "tsx --test tests/api.test.ts",
+    "test:e2e:legacy": "tsx scripts/verify-e2e.ts"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "lucide-react": "^0.577.0",
+    "mysql2": "^3.24.6",
+    "next": "^16.4.3",
+    "nodemailer": "^10.2.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "recharts": "^3.8.0",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^22.19.0",
+    "@types/nodemailer": "^8.0.2",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/smtp-server": "^3.5.13",
+    "smtp-server": "^3.21.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

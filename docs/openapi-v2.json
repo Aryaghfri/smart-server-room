@@ -1,0 +1,2401 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Smart Server Room — API aplikasi v2",
+    "version": "2.0.0",
+    "description": "Kontrak milik web KELAPA, BUKAN API Mas Togar. Jalur utama: perangkat→API Mas Togar existing→MySQL iot_binus→worker SELECT→cache/web. Endpoint device v2 hanya alternatif pengujian DATA_SOURCE=api. Dashboard tanpa login perlu jaringan internal; Origin+CSRF bukan autentikasi operator. Contoh waktu/UUID perlu diganti untuk sampel baru."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:3000/api/v2",
+      "description": "Lokal/internal; tidak untuk deploy publik."
+    }
+  ],
+  "tags": [
+    {
+      "name": "Operasi"
+    },
+    {
+      "name": "API uji perangkat"
+    },
+    {
+      "name": "Dashboard"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "healthV2",
+        "tags": [
+          "Operasi"
+        ],
+        "summary": "Health konfigurasi aplikasi, bukan tes MySQL/SMTP",
+        "description": "Health konfigurasi aplikasi, bukan tes MySQL/SMTP",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Health"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "status": "ok",
+                    "version": 2,
+                    "mode": "simulation",
+                    "data_source": "mysql"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
+    },
+    "/device/telemetry": {
+      "post": {
+        "operationId": "sendTelemetry",
+        "tags": [
+          "API uji perangkat"
+        ],
+        "summary": "Simpan satu sampel DHT/PIR/MQ",
+        "description": "Opsional DATA_SOURCE=api saja, bukan API Mas Togar. Deduplikasi per sample_id dan kind; payload berbeda409 ID_CONFLICT; tiga record atomik. Source simulator pada mode simulation, api pada mode real.",
+        "security": [
+          {
+            "DeviceId": [],
+            "DeviceApiKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelemetryInput"
+              },
+              "example": {
+                "sample_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b",
+                "measured_at": "2026-10-26T07:00:00.000Z",
+                "dht": {
+                  "suhu": 31.2,
+                  "kelembapan": 67,
+                  "status": 1,
+                  "error_code": null
+                },
+                "pir": {
+                  "status": 1,
+                  "lamp_on": null
+                },
+                "mq": {
+                  "status": 0
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Retry identik, tidak menggandakan record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TelemetryAccepted"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "sample_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b",
+                    "inserted": 0,
+                    "duplicates": 3
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Dibuat.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TelemetryAccepted"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "sample_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b",
+                    "inserted": 3,
+                    "duplicates": 0
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/device/config": {
+      "get": {
+        "operationId": "deviceConfig",
+        "tags": [
+          "API uji perangkat"
+        ],
+        "summary": "Ambil ambang untuk jalur API uji",
+        "description": "DATA_SOURCE=api saja. Ini tidak mengirim konfigurasi ke firmware lewat MySQL.",
+        "security": [
+          {
+            "DeviceId": [],
+            "DeviceApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Configuration"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "version": 1,
+                    "fan_on_c": 31,
+                    "fan_off_c": 30,
+                    "updated_at": "2026-10-26T07:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/device/config/ack": {
+      "post": {
+        "operationId": "ackConfig",
+        "tags": [
+          "API uji perangkat"
+        ],
+        "summary": "Konfirmasi versi yang sudah diterapkan",
+        "description": "ACK monotonik. Versi belum diterbitkan422 CONFIG_VERSION. Heartbeat bukan ACK. DATA_SOURCE=api saja.",
+        "security": [
+          {
+            "DeviceId": [],
+            "DeviceApiKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AckInput"
+              },
+              "example": {
+                "version": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AckAccepted"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "applied_config_version": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/device/heartbeat": {
+      "post": {
+        "operationId": "heartbeat",
+        "tags": [
+          "API uji perangkat"
+        ],
+        "summary": "Catat komunikasi perangkat API",
+        "description": "Tidak membuat record sensor atau mengakui konfigurasi. heartbeat_id dikembalikan; endpoint memperbarui kontak, bukan menyimpan histori heartbeat v2.",
+        "security": [
+          {
+            "DeviceId": [],
+            "DeviceApiKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartbeatInput"
+              },
+              "example": {
+                "heartbeat_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b",
+                "reported_at": "2026-10-26T07:00:00.000Z"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/HeartbeatAccepted"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "heartbeat_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/dashboard/session": {
+      "get": {
+        "operationId": "dashboardSession",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Ambil cookie dan token CSRF",
+        "description": "Ambil cookie dan token CSRF",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Session"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "csrf_token": "TOKEN_DARI_SERVER"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "ssr_csrf=<token>.<signature>; Path=/; HttpOnly; SameSite=Strict; Secure pada URL HTTPS."
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/dashboard/summary": {
+      "get": {
+        "operationId": "monitoringSummary",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Ringkasan sensor, insiden dan integrasi",
+        "description": "Default dashboard_poll_seconds300. Freshness berdasar pengukuran; GET tidak membuat perangkat online. PPM, jumlah penghuni, dan feedback LED yang belum tersedia tidak disimpulkan.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Summary"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "dashboard_poll_seconds": 300,
+                    "mode": "simulation",
+                    "data_source": "mysql",
+                    "device_id": "kelapa-esp32-01",
+                    "server_time": "2026-10-26T07:00:00.000Z",
+                    "online": false,
+                    "last_contact_at": null,
+                    "latest": {
+                      "dht": null,
+                      "pir": null,
+                      "mq": null
+                    },
+                    "stale": {
+                      "dht": true,
+                      "pir": true,
+                      "mq": true
+                    },
+                    "counts": {
+                      "dht": 0,
+                      "pir": 0,
+                      "mq": 0,
+                      "motion_samples_today": 0,
+                      "smoke_samples_today": 0
+                    },
+                    "chart": [],
+                    "recent": [],
+                    "incidents": [],
+                    "config": {
+                      "version": 1,
+                      "fan_on_c": 31,
+                      "fan_off_c": 30,
+                      "updated_at": "2026-10-26T07:00:00.000Z"
+                    },
+                    "applied_config_version": 0,
+                    "source_counts": [],
+                    "email": {
+                      "configured": false,
+                      "recipients": 0,
+                      "worker_last_seen": null
+                    },
+                    "integration": {
+                      "rejected_rows": 0,
+                      "last_sync_at": null,
+                      "last_error": null,
+                      "worker_last_seen": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
+    },
+    "/dashboard/history": {
+      "get": {
+        "operationId": "sensorHistory",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Histori dengan filter sensor/sumber/tanggal WIB",
+        "description": "Histori dengan filter sensor/sumber/tanggal WIB",
+        "security": [],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            },
+            "description": "Nomor halaman."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 15
+            },
+            "description": "Jumlah per halaman."
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "all",
+                "dht",
+                "pir",
+                "mq"
+              ],
+              "default": "all"
+            },
+            "description": "Jenis sensor."
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "all",
+                "api",
+                "mysql",
+                "sql_import",
+                "simulator"
+              ],
+              "default": "all"
+            },
+            "description": "Sumber."
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Awal hari WIB inklusif."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Akhir hari WIB inklusif; harus >=from."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/HistoryPage"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "items": [
+                      {
+                        "record_key": "simulator:dht:da3c236b-a00b-4ede-8566-b9a9c9eb988b",
+                        "kind": "dht",
+                        "source": "simulator",
+                        "source_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b",
+                        "measured_at": "2026-10-26T07:00:00.000Z",
+                        "received_at": "2026-10-26T07:00:00.000Z",
+                        "suhu": 31.2,
+                        "kelembapan": 67,
+                        "status": 1,
+                        "lamp_on": null,
+                        "error_code": null
+                      }
+                    ],
+                    "total": 1,
+                    "page": 1,
+                    "page_size": 15
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
+    },
+    "/dashboard/alerts": {
+      "get": {
+        "operationId": "smokeAlerts",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Histori insiden dan status email",
+        "description": "Status sent hanya SMTP accepted; unknown tidak otomatis dikirim ulang. Semua insiden pada cache, dipaginasi.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            },
+            "description": "Nomor halaman."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 15
+            },
+            "description": "Jumlah per halaman."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AlertPage"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "items": [
+                      {
+                        "id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b",
+                        "detected_at": "2026-10-26T07:00:00.000Z",
+                        "resolved_at": null,
+                        "source": "simulator",
+                        "emails": [
+                          {
+                            "recipient_email": "uji@example.com",
+                            "status": "pending",
+                            "completed_at": null,
+                            "detail": null
+                          }
+                        ]
+                      }
+                    ],
+                    "total": 1,
+                    "page": 1,
+                    "page_size": 15
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
+    },
+    "/dashboard/recipients": {
+      "get": {
+        "operationId": "listRecipients",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Daftar penerima aktif dan nonaktif",
+        "description": "Daftar penerima aktif dan nonaktif",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Recipient"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": 1,
+                      "email": "uji@example.com",
+                      "name": "Tim Uji",
+                      "enabled": 1,
+                      "created_at": "2026-10-26T07:00:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createRecipient",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Daftarkan atau aktifkan penerima",
+        "description": "Email dinormalisasi lowercase. Duplikasi penerima aktif409 EMAIL_EXISTS. Email nonaktif yang sama diaktifkan kembali. Berlaku untuk insiden baru.",
+        "security": [
+          {
+            "CsrfCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Harus persis terdaftar dalam ALLOWED_ORIGINS."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecipientInput"
+              },
+              "example": {
+                "email": "uji@example.com",
+                "name": "Tim Uji"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Dibuat.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RecipientAccepted"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "email": "uji@example.com",
+                    "enabled": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
+    },
+    "/dashboard/recipients/{id}": {
+      "delete": {
+        "operationId": "disableRecipient",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Nonaktifkan penerima tanpa menghapus histori",
+        "description": "Tidak membutuhkan request body. ID integer positif; penerima tidak ditemukan menghasilkan404.",
+        "security": [
+          {
+            "CsrfCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Harus persis terdaftar dalam ALLOWED_ORIGINS."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RecipientDisabled"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "id": 1,
+                    "enabled": false
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
+    },
+    "/dashboard/settings": {
+      "put": {
+        "operationId": "updateMonitorSettings",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Simpan ambang API dengan versi optimistis",
+        "description": "DATA_SOURCE=mysql ditolak409 MYSQL_LOCAL_CONFIG: tidak ada jalur balik firmware. API: expected_version mismatch409 CONFIG_CONFLICT; OFF wajib <ON.",
+        "security": [
+          {
+            "CsrfCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Harus persis terdaftar dalam ALLOWED_ORIGINS."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigurationInput"
+              },
+              "example": {
+                "expected_version": 1,
+                "fan_on_c": 31,
+                "fan_off_c": 30
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Configuration"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "version": 1,
+                    "fan_on_c": 31,
+                    "fan_off_c": 30,
+                    "updated_at": "2026-10-26T07:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "DeviceId": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Device-ID"
+      },
+      "DeviceApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      },
+      "CsrfCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "ssr_csrf"
+      },
+      "CsrfHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "path",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "error",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "const": "ok"
+          },
+          "version": {
+            "const": 2
+          },
+          "mode": {
+            "enum": [
+              "simulation",
+              "real"
+            ]
+          },
+          "data_source": {
+            "enum": [
+              "mysql",
+              "api"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "version",
+          "mode",
+          "data_source"
+        ],
+        "additionalProperties": false
+      },
+      "Configuration": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "fan_on_c": {
+            "type": "number",
+            "minimum": -39,
+            "maximum": 80
+          },
+          "fan_off_c": {
+            "type": "number",
+            "minimum": -40,
+            "maximum": 79
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO8601 berzona waktu. Output UTC Z; timestamp perangkat lebih dari30detik di masa depan ditolak."
+          }
+        },
+        "required": [
+          "version",
+          "fan_on_c",
+          "fan_off_c",
+          "updated_at"
+        ],
+        "additionalProperties": false
+      },
+      "ConfigurationInput": {
+        "type": "object",
+        "properties": {
+          "expected_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "fan_on_c": {
+            "type": "number",
+            "minimum": -39,
+            "maximum": 80
+          },
+          "fan_off_c": {
+            "type": "number",
+            "minimum": -40,
+            "maximum": 79
+          }
+        },
+        "required": [
+          "expected_version",
+          "fan_on_c",
+          "fan_off_c"
+        ],
+        "additionalProperties": false,
+        "description": "fan_off_c wajib lebih kecil daripada fan_on_c. expected_version harus cocok; hanya DATA_SOURCE=api."
+      },
+      "DhtInput": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "suhu": {
+                "type": "number",
+                "minimum": -40,
+                "maximum": 80
+              },
+              "kelembapan": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "status": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "enum": [
+                  0,
+                  1,
+                  null
+                ]
+              },
+              "error_code": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "suhu",
+              "kelembapan",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "suhu": {
+                "type": "null"
+              },
+              "kelembapan": {
+                "type": "null"
+              },
+              "status": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "enum": [
+                  0,
+                  1,
+                  null
+                ]
+              },
+              "error_code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            },
+            "required": [
+              "suhu",
+              "kelembapan",
+              "status",
+              "error_code"
+            ],
+            "additionalProperties": false
+          }
+        ],
+        "description": "status adalah laporan kipas 0OFF/1ON/nullbelum diketahui, bukan status kesehatan DHT. DHT gagal memakai null/null dan error_code."
+      },
+      "PirInput": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "enum": [
+              0,
+              1,
+              null
+            ]
+          },
+          "lamp_on": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false,
+        "description": "status deteksi orang; lamp_on opsional defaultnull. Isi feedback LED hanya jika pengirim mengetahuinya."
+      },
+      "MqInput": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "enum": [
+              0,
+              1,
+              null
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false,
+        "description": "Deteksi asap biner, bukan konsentrasi PPM."
+      },
+      "TelemetryInput": {
+        "type": "object",
+        "properties": {
+          "sample_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "measured_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO8601 berzona waktu. Output UTC Z; timestamp perangkat lebih dari30detik di masa depan ditolak."
+          },
+          "dht": {
+            "$ref": "#/components/schemas/DhtInput"
+          },
+          "pir": {
+            "$ref": "#/components/schemas/PirInput"
+          },
+          "mq": {
+            "$ref": "#/components/schemas/MqInput"
+          }
+        },
+        "required": [
+          "sample_id",
+          "measured_at",
+          "dht",
+          "pir",
+          "mq"
+        ],
+        "additionalProperties": false
+      },
+      "TelemetryAccepted": {
+        "type": "object",
+        "properties": {
+          "sample_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "inserted": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "duplicates": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          }
+        },
+        "required": [
+          "sample_id",
+          "inserted",
+          "duplicates"
+        ],
+        "additionalProperties": false
+      },
+      "AckInput": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "AckAccepted": {
+        "type": "object",
+        "properties": {
+          "applied_config_version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "applied_config_version"
+        ],
+        "additionalProperties": false
+      },
+      "HeartbeatInput": {
+        "type": "object",
+        "properties": {
+          "heartbeat_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reported_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO8601 berzona waktu. Output UTC Z; timestamp perangkat lebih dari30detik di masa depan ditolak."
+          }
+        },
+        "required": [
+          "heartbeat_id",
+          "reported_at"
+        ],
+        "additionalProperties": false
+      },
+      "HeartbeatAccepted": {
+        "type": "object",
+        "properties": {
+          "heartbeat_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "heartbeat_id"
+        ],
+        "additionalProperties": false
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "csrf_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "csrf_token"
+        ],
+        "additionalProperties": false
+      },
+      "RecipientInput": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "default": ""
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "additionalProperties": false
+      },
+      "Recipient": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO8601 berzona waktu. Output UTC Z; timestamp perangkat lebih dari30detik di masa depan ditolak."
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "enabled",
+          "created_at"
+        ],
+        "additionalProperties": false
+      },
+      "RecipientAccepted": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "enabled": {
+            "const": true
+          }
+        },
+        "required": [
+          "email",
+          "enabled"
+        ],
+        "additionalProperties": false
+      },
+      "RecipientDisabled": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "enabled": {
+            "const": false
+          }
+        },
+        "required": [
+          "id",
+          "enabled"
+        ],
+        "additionalProperties": false
+      },
+      "SensorRecord": {
+        "type": "object",
+        "properties": {
+          "record_key": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "dht",
+              "pir",
+              "mq"
+            ]
+          },
+          "source": {
+            "enum": [
+              "api",
+              "mysql",
+              "sql_import",
+              "simulator"
+            ]
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "measured_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO8601 berzona waktu. Output UTC Z; timestamp perangkat lebih dari30detik di masa depan ditolak."
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO8601 berzona waktu. Output UTC Z; timestamp perangkat lebih dari30detik di masa depan ditolak."
+          },
+          "suhu": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": -40,
+                "maximum": 80
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kelembapan": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "enum": [
+              0,
+              1,
+              null
+            ]
+          },
+          "lamp_on": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "enum": [
+              0,
+              1,
+              null
+            ]
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "record_key",
+          "kind",
+          "source",
+          "source_id",
+          "measured_at",
+          "received_at",
+          "suhu",
+          "kelembapan",
+          "status",
+          "lamp_on",
+          "error_code"
+        ],
+        "additionalProperties": false
+      },
+      "EmailResult": {
+        "type": "object",
+        "properties": {
+          "recipient_email": {
+            "type": "string",
+            "format": "email"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "sending",
+              "sent",
+              "failed",
+              "unknown",
+              "skipped"
+            ]
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO8601 berzona waktu. Output UTC Z; timestamp perangkat lebih dari30detik di masa depan ditolak."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "recipient_email",
+          "status",
+          "completed_at",
+          "detail"
+        ],
+        "additionalProperties": false
+      },
+      "SmokeIncident": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "detected_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO8601 berzona waktu. Output UTC Z; timestamp perangkat lebih dari30detik di masa depan ditolak."
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO8601 berzona waktu. Output UTC Z; timestamp perangkat lebih dari30detik di masa depan ditolak."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "enum": [
+              "api",
+              "mysql",
+              "sql_import",
+              "simulator"
+            ]
+          },
+          "emails": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmailResult"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "detected_at",
+          "resolved_at",
+          "source",
+          "emails"
+        ],
+        "additionalProperties": false
+      },
+      "HistoryPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SensorRecord"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "additionalProperties": false
+      },
+      "AlertPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SmokeIncident"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "additionalProperties": false
+      },
+      "Summary": {
+        "type": "object",
+        "properties": {
+          "dashboard_poll_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3600
+          },
+          "mode": {
+            "enum": [
+              "simulation",
+              "real"
+            ]
+          },
+          "data_source": {
+            "enum": [
+              "mysql",
+              "api"
+            ]
+          },
+          "device_id": {
+            "type": "string"
+          },
+          "server_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO8601 berzona waktu. Output UTC Z; timestamp perangkat lebih dari30detik di masa depan ditolak."
+          },
+          "online": {
+            "type": "boolean"
+          },
+          "last_contact_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO8601 berzona waktu. Output UTC Z; timestamp perangkat lebih dari30detik di masa depan ditolak."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest": {
+            "type": "object",
+            "properties": {
+              "dht": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/SensorRecord"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "pir": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/SensorRecord"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "mq": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/SensorRecord"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "dht",
+              "pir",
+              "mq"
+            ],
+            "additionalProperties": false
+          },
+          "stale": {
+            "type": "object",
+            "properties": {
+              "dht": {
+                "type": "boolean"
+              },
+              "pir": {
+                "type": "boolean"
+              },
+              "mq": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "dht",
+              "pir",
+              "mq"
+            ],
+            "additionalProperties": false
+          },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "dht": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "pir": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "mq": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "motion_samples_today": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "smoke_samples_today": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "dht",
+              "pir",
+              "mq",
+              "motion_samples_today",
+              "smoke_samples_today"
+            ],
+            "additionalProperties": false
+          },
+          "chart": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SensorRecord"
+            },
+            "maxItems": 120
+          },
+          "recent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SensorRecord"
+            },
+            "maxItems": 8
+          },
+          "incidents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SmokeIncident"
+            },
+            "maxItems": 5
+          },
+          "config": {
+            "$ref": "#/components/schemas/Configuration"
+          },
+          "applied_config_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_counts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "enum": [
+                    "api",
+                    "mysql",
+                    "sql_import",
+                    "simulator"
+                  ]
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "source",
+                "total"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "email": {
+            "type": "object",
+            "properties": {
+              "configured": {
+                "type": "boolean"
+              },
+              "recipients": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "worker_last_seen": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "ISO8601 berzona waktu. Output UTC Z; timestamp perangkat lebih dari30detik di masa depan ditolak."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "configured",
+              "recipients",
+              "worker_last_seen"
+            ],
+            "additionalProperties": false
+          },
+          "integration": {
+            "type": "object",
+            "properties": {
+              "rejected_rows": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "last_sync_at": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "ISO8601 berzona waktu. Output UTC Z; timestamp perangkat lebih dari30detik di masa depan ditolak."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "last_error": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "worker_last_seen": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "ISO8601 berzona waktu. Output UTC Z; timestamp perangkat lebih dari30detik di masa depan ditolak."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "rejected_rows",
+              "last_sync_at",
+              "last_error",
+              "worker_last_seen"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "dashboard_poll_seconds",
+          "mode",
+          "data_source",
+          "device_id",
+          "server_time",
+          "online",
+          "last_contact_at",
+          "latest",
+          "stale",
+          "counts",
+          "chart",
+          "recent",
+          "incidents",
+          "config",
+          "applied_config_version",
+          "source_counts",
+          "email",
+          "integration"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "responses": {
+      "Error400": {
+        "description": "Body kosong atau JSON rusak.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "INVALID_JSON",
+                "message": "Body kosong atau JSON rusak."
+              },
+              "request_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b"
+            }
+          }
+        }
+      },
+      "Error401": {
+        "description": "X-Device-ID atau X-API-Key salah.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "UNAUTHORIZED",
+                "message": "X-Device-ID atau X-API-Key salah."
+              },
+              "request_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b"
+            }
+          }
+        }
+      },
+      "Error403": {
+        "description": "Origin/CSRF dashboard atau Origin client perangkat ditolak.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "CSRF_INVALID",
+                "message": "Origin/CSRF dashboard atau Origin client perangkat ditolak."
+              },
+              "request_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b"
+            }
+          }
+        }
+      },
+      "Error404": {
+        "description": "Endpoint, metode atau penerima tidak ditemukan.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "NOT_FOUND",
+                "message": "Endpoint, metode atau penerima tidak ditemukan."
+              },
+              "request_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b"
+            }
+          }
+        }
+      },
+      "Error409": {
+        "description": "Sumber aktif, ID/payload, penerima atau versi konfigurasi konflik.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "SOURCE_MISMATCH",
+                "message": "Sumber aktif, ID/payload, penerima atau versi konfigurasi konflik."
+              },
+              "request_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b"
+            }
+          }
+        }
+      },
+      "Error413": {
+        "description": "Body maksimal16KiB.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "PAYLOAD_TOO_LARGE",
+                "message": "Body maksimal16KiB."
+              },
+              "request_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b"
+            }
+          }
+        }
+      },
+      "Error415": {
+        "description": "Gunakan Content-Type application/json.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "CONTENT_TYPE",
+                "message": "Gunakan Content-Type application/json."
+              },
+              "request_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b"
+            }
+          }
+        }
+      },
+      "Error422": {
+        "description": "Field, timestamp, parameter, range tanggal atau versi tidak valid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Field, timestamp, parameter, range tanggal atau versi tidak valid."
+              },
+              "request_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b"
+            }
+          }
+        }
+      },
+      "Error429": {
+        "description": "Batas per proses: perangkat240/menit, mutasi dashboard120/menit. Tunggu Retry-After60.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "RATE_LIMIT",
+                "message": "Batas per proses: perangkat240/menit, mutasi dashboard120/menit. Tunggu Retry-After60."
+              },
+              "request_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b"
+            }
+          }
+        },
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "string",
+              "example": "60"
+            }
+          }
+        }
+      },
+      "Error500": {
+        "description": "Server gagal memproses; gunakan request_id untuk log.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "INTERNAL_ERROR",
+                "message": "Server gagal memproses; gunakan request_id untuk log."
+              },
+              "request_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b"
+            }
+          }
+        }
+      },
+      "Error503": {
+        "description": "Secret API perangkat atau CSRF belum dikonfigurasi.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "NOT_CONFIGURED",
+                "message": "Secret API perangkat atau CSRF belum dikonfigurasi."
+              },
+              "request_id": "da3c236b-a00b-4ede-8566-b9a9c9eb988b"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,4845 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Smart Server Room — KELAPA",
+    "version": "1.0.0",
+    "description": "API internal satu ruang/satu perangkat. Semua sukses dibungkus data, error konsisten. Tidak ada autentikasi dashboard; batasi jaringan. Secret perangkat tidak boleh di frontend. UTC di storage, WIB di UI. Contoh timestamp bersifat ilustrasi dan perlu diganti saat eksekusi."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:3000/api/v1",
+      "description": "Lokal; jangan deploy publik"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Perangkat"
+    },
+    {
+      "name": "Dashboard"
+    },
+    {
+      "name": "Operasi"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "tags": [
+          "Operasi"
+        ],
+        "summary": "Health dan mode aplikasi",
+        "description": "Health dan mode aplikasi",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Health"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "status": "ok",
+                    "mode": "simulation"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/device/access-events": {
+      "post": {
+        "operationId": "sendAccessEvent",
+        "tags": [
+          "Perangkat"
+        ],
+        "summary": "Simpan keputusan pengenalan dan izin akses",
+        "description": "Known tidak berarti allowed. Timestamp lama diterima. Retry identik tidak menggandakan data; ID sama dengan payload berbeda 409.",
+        "security": [
+          {
+            "DeviceId": [],
+            "DeviceApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retry identik; mengembalikan catatan yang sama.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AccessAccepted"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "event_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                    "duplicate": true
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Catatan/perintah baru berhasil dibuat.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AccessAccepted"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "event_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                    "duplicate": false
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body kosong atau JSON tidak valid (INVALID_JSON).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INVALID_JSON",
+                    "message": "Body kosong atau JSON tidak valid (INVALID_JSON)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Kredensial perangkat salah (UNAUTHORIZED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "UNAUTHORIZED",
+                    "message": "Kredensial perangkat salah (UNAUTHORIZED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "DEVICE_ORIGIN",
+                    "message": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Konflik ID, hasil, versi, mode, receipt, atau perintah sejenis (ID_CONFLICT, RESULT_CONFLICT, CONFIG_CONFLICT, CONFIG_NOT_APPLIED, RECEIPT_REQUIRED, MANUAL_MODE_REQUIRED, COMMAND_IN_FLIGHT).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "ID_CONFLICT",
+                    "message": "Konflik ID, hasil, versi, mode, receipt, atau perintah sejenis (ID_CONFLICT, RESULT_CONFLICT, CONFIG_CONFLICT, CONFIG_NOT_APPLIED, RECEIPT_REQUIRED, MANUAL_MODE_REQUIRED, COMMAND_IN_FLIGHT)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "PAYLOAD_TOO_LARGE",
+                    "message": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type harus application/json (CONTENT_TYPE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "CONTENT_TYPE",
+                    "message": "Content-Type harus application/json (CONTENT_TYPE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "example": "60"
+                },
+                "description": "Jumlah detik menunggu sebelum retry."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "RATE_LIMIT",
+                    "message": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Secret server belum dikonfigurasi (NOT_CONFIGURED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_CONFIGURED",
+                    "message": "Secret server belum dikonfigurasi (NOT_CONFIGURED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessInput"
+              },
+              "example": {
+                "event_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                "occurred_at": "2026-09-29T03:00:00.000Z",
+                "person_id": "KLP-002",
+                "person_name": "Tamu Simulasi",
+                "recognition": "known",
+                "decision": "denied",
+                "reason": "Tidak memiliki izin"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/device/readings": {
+      "post": {
+        "operationId": "sendReading",
+        "tags": [
+          "Perangkat"
+        ],
+        "summary": "Simpan sensor valid atau status kegagalan",
+        "description": "Pembacaan gagal memiliki angka null, bukan 0. Data terlambat masuk histori tanpa menimpa ringkasan terbaru.",
+        "security": [
+          {
+            "DeviceId": [],
+            "DeviceApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retry identik; mengembalikan catatan yang sama.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ReadingAccepted"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "reading_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                    "duplicate": true
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Catatan/perintah baru berhasil dibuat.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ReadingAccepted"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "reading_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                    "duplicate": false
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body kosong atau JSON tidak valid (INVALID_JSON).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INVALID_JSON",
+                    "message": "Body kosong atau JSON tidak valid (INVALID_JSON)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Kredensial perangkat salah (UNAUTHORIZED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "UNAUTHORIZED",
+                    "message": "Kredensial perangkat salah (UNAUTHORIZED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "DEVICE_ORIGIN",
+                    "message": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Konflik ID, hasil, versi, mode, receipt, atau perintah sejenis (ID_CONFLICT, RESULT_CONFLICT, CONFIG_CONFLICT, CONFIG_NOT_APPLIED, RECEIPT_REQUIRED, MANUAL_MODE_REQUIRED, COMMAND_IN_FLIGHT).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "ID_CONFLICT",
+                    "message": "Konflik ID, hasil, versi, mode, receipt, atau perintah sejenis (ID_CONFLICT, RESULT_CONFLICT, CONFIG_CONFLICT, CONFIG_NOT_APPLIED, RECEIPT_REQUIRED, MANUAL_MODE_REQUIRED, COMMAND_IN_FLIGHT)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "PAYLOAD_TOO_LARGE",
+                    "message": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type harus application/json (CONTENT_TYPE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "CONTENT_TYPE",
+                    "message": "Content-Type harus application/json (CONTENT_TYPE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "example": "60"
+                },
+                "description": "Jumlah detik menunggu sebelum retry."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "RATE_LIMIT",
+                    "message": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Secret server belum dikonfigurasi (NOT_CONFIGURED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_CONFIGURED",
+                    "message": "Secret server belum dikonfigurasi (NOT_CONFIGURED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadingInput"
+              },
+              "example": {
+                "reading_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                "measured_at": "2026-09-29T03:00:00.000Z",
+                "status": "ok",
+                "temperature_c": 30.2,
+                "humidity_percent": 54.1,
+                "error_code": null
+              }
+            }
+          }
+        }
+      }
+    },
+    "/device/heartbeat": {
+      "post": {
+        "operationId": "sendHeartbeat",
+        "tags": [
+          "Perangkat"
+        ],
+        "summary": "Laporkan state aktuator perangkat",
+        "description": "applied_config_version tidak boleh melebihi versi terbit. Field heartbeat bukan ACK konfigurasi. lock_state tidak membuktikan posisi fisik pintu.",
+        "security": [
+          {
+            "DeviceId": [],
+            "DeviceApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retry identik; mengembalikan catatan yang sama.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/HeartbeatAccepted"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "heartbeat_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                    "duplicate": true
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Catatan/perintah baru berhasil dibuat.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/HeartbeatAccepted"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "heartbeat_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                    "duplicate": false
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body kosong atau JSON tidak valid (INVALID_JSON).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INVALID_JSON",
+                    "message": "Body kosong atau JSON tidak valid (INVALID_JSON)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Kredensial perangkat salah (UNAUTHORIZED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "UNAUTHORIZED",
+                    "message": "Kredensial perangkat salah (UNAUTHORIZED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "DEVICE_ORIGIN",
+                    "message": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Konflik ID, hasil, versi, mode, receipt, atau perintah sejenis (ID_CONFLICT, RESULT_CONFLICT, CONFIG_CONFLICT, CONFIG_NOT_APPLIED, RECEIPT_REQUIRED, MANUAL_MODE_REQUIRED, COMMAND_IN_FLIGHT).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "ID_CONFLICT",
+                    "message": "Konflik ID, hasil, versi, mode, receipt, atau perintah sejenis (ID_CONFLICT, RESULT_CONFLICT, CONFIG_CONFLICT, CONFIG_NOT_APPLIED, RECEIPT_REQUIRED, MANUAL_MODE_REQUIRED, COMMAND_IN_FLIGHT)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "PAYLOAD_TOO_LARGE",
+                    "message": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type harus application/json (CONTENT_TYPE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "CONTENT_TYPE",
+                    "message": "Content-Type harus application/json (CONTENT_TYPE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "example": "60"
+                },
+                "description": "Jumlah detik menunggu sebelum retry."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "RATE_LIMIT",
+                    "message": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Secret server belum dikonfigurasi (NOT_CONFIGURED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_CONFIGURED",
+                    "message": "Secret server belum dikonfigurasi (NOT_CONFIGURED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartbeatInput"
+              },
+              "example": {
+                "heartbeat_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                "reported_at": "2026-09-29T03:00:00.000Z",
+                "lock_state": "locked",
+                "fan_on": true,
+                "fan_mode": "automatic",
+                "applied_config_version": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "/device/config": {
+      "get": {
+        "operationId": "getDeviceConfiguration",
+        "tags": [
+          "Perangkat"
+        ],
+        "summary": "Ambil konfigurasi terbaru",
+        "description": "Ambil konfigurasi terbaru",
+        "security": [
+          {
+            "DeviceId": [],
+            "DeviceApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Configuration"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "version": 1,
+                    "fan_on_c": 30,
+                    "fan_off_c": 28,
+                    "fan_mode": "automatic",
+                    "unlock_duration_seconds": 5,
+                    "updated_at": "2026-09-29T03:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Kredensial perangkat salah (UNAUTHORIZED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "UNAUTHORIZED",
+                    "message": "Kredensial perangkat salah (UNAUTHORIZED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "DEVICE_ORIGIN",
+                    "message": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "example": "60"
+                },
+                "description": "Jumlah detik menunggu sebelum retry."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "RATE_LIMIT",
+                    "message": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Secret server belum dikonfigurasi (NOT_CONFIGURED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_CONFIGURED",
+                    "message": "Secret server belum dikonfigurasi (NOT_CONFIGURED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/device/config/ack": {
+      "post": {
+        "operationId": "ackConfiguration",
+        "tags": [
+          "Perangkat"
+        ],
+        "summary": "Konfirmasi versi yang selesai diterapkan",
+        "description": "ACK monotonik; versi lama tidak menurunkan versi perangkat. Versi belum terbit ditolak 422.",
+        "security": [
+          {
+            "DeviceId": [],
+            "DeviceApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AckResult"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "applied_config_version": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body kosong atau JSON tidak valid (INVALID_JSON).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INVALID_JSON",
+                    "message": "Body kosong atau JSON tidak valid (INVALID_JSON)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Kredensial perangkat salah (UNAUTHORIZED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "UNAUTHORIZED",
+                    "message": "Kredensial perangkat salah (UNAUTHORIZED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "DEVICE_ORIGIN",
+                    "message": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "PAYLOAD_TOO_LARGE",
+                    "message": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type harus application/json (CONTENT_TYPE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "CONTENT_TYPE",
+                    "message": "Content-Type harus application/json (CONTENT_TYPE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "example": "60"
+                },
+                "description": "Jumlah detik menunggu sebelum retry."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "RATE_LIMIT",
+                    "message": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Secret server belum dikonfigurasi (NOT_CONFIGURED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_CONFIGURED",
+                    "message": "Secret server belum dikonfigurasi (NOT_CONFIGURED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AckInput"
+              },
+              "example": {
+                "version": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "/device/commands": {
+      "get": {
+        "operationId": "pollCommands",
+        "tags": [
+          "Perangkat"
+        ],
+        "summary": "Ambil command yang masih berlaku",
+        "description": "Maksimal 50 pending/received belum lewat expires_at, urut created_at. GET tidak menerima atau mengeksekusi perintah. Received hanya untuk pengecekan hasil/ledger, tidak boleh dieksekusi ulang.",
+        "security": [
+          {
+            "DeviceId": [],
+            "DeviceApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Command"
+                      },
+                      "maxItems": 50
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": [
+                    {
+                      "command_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                      "device_id": "kelapa-esp32-01",
+                      "type": "unlock",
+                      "duration_seconds": 5,
+                      "fan_on": null,
+                      "config_version": 1,
+                      "created_at": "2026-09-29T03:00:00.000Z",
+                      "expires_at": "2026-09-29T03:00:10.000Z",
+                      "result_deadline": "2026-09-29T03:00:45.000Z",
+                      "received_at": null,
+                      "completed_at": null,
+                      "status": "pending",
+                      "message": null,
+                      "source": "dashboard internal"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Kredensial perangkat salah (UNAUTHORIZED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "UNAUTHORIZED",
+                    "message": "Kredensial perangkat salah (UNAUTHORIZED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "DEVICE_ORIGIN",
+                    "message": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "example": "60"
+                },
+                "description": "Jumlah detik menunggu sebelum retry."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "RATE_LIMIT",
+                    "message": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Secret server belum dikonfigurasi (NOT_CONFIGURED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_CONFIGURED",
+                    "message": "Secret server belum dikonfigurasi (NOT_CONFIGURED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/device/commands/{command_id}/receipt": {
+      "post": {
+        "operationId": "receiptCommand",
+        "tags": [
+          "Perangkat"
+        ],
+        "summary": "Terima perintah satu kali",
+        "description": "Hanya receipt pertama sebelum TTL mengizinkan execute_allowed true. Retry false. set_fan memerlukan versi ACK cocok; 409 CONFIG_NOT_APPLIED. Ledger wajib disimpan sebelum meminta receipt.",
+        "security": [
+          {
+            "DeviceId": [],
+            "DeviceApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ReceiptResult"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "command": {
+                      "command_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                      "device_id": "kelapa-esp32-01",
+                      "type": "unlock",
+                      "duration_seconds": 5,
+                      "fan_on": null,
+                      "config_version": 1,
+                      "created_at": "2026-09-29T03:00:00.000Z",
+                      "expires_at": "2026-09-29T03:00:10.000Z",
+                      "result_deadline": "2026-09-29T03:00:45.000Z",
+                      "received_at": "2026-09-29T03:00:01.000Z",
+                      "completed_at": null,
+                      "status": "received",
+                      "message": null,
+                      "source": "dashboard internal"
+                    },
+                    "execute_allowed": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body kosong atau JSON tidak valid (INVALID_JSON).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INVALID_JSON",
+                    "message": "Body kosong atau JSON tidak valid (INVALID_JSON)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Kredensial perangkat salah (UNAUTHORIZED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "UNAUTHORIZED",
+                    "message": "Kredensial perangkat salah (UNAUTHORIZED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "DEVICE_ORIGIN",
+                    "message": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Konflik ID, hasil, versi, mode, receipt, atau perintah sejenis (ID_CONFLICT, RESULT_CONFLICT, CONFIG_CONFLICT, CONFIG_NOT_APPLIED, RECEIPT_REQUIRED, MANUAL_MODE_REQUIRED, COMMAND_IN_FLIGHT).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "ID_CONFLICT",
+                    "message": "Konflik ID, hasil, versi, mode, receipt, atau perintah sejenis (ID_CONFLICT, RESULT_CONFLICT, CONFIG_CONFLICT, CONFIG_NOT_APPLIED, RECEIPT_REQUIRED, MANUAL_MODE_REQUIRED, COMMAND_IN_FLIGHT)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Perintah kedaluwarsa (COMMAND_EXPIRED), aktuator tidak boleh dijalankan.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "COMMAND_EXPIRED",
+                    "message": "Perintah kedaluwarsa (COMMAND_EXPIRED), aktuator tidak boleh dijalankan."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "PAYLOAD_TOO_LARGE",
+                    "message": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type harus application/json (CONTENT_TYPE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "CONTENT_TYPE",
+                    "message": "Content-Type harus application/json (CONTENT_TYPE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "example": "60"
+                },
+                "description": "Jumlah detik menunggu sebelum retry."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "RATE_LIMIT",
+                    "message": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Secret server belum dikonfigurasi (NOT_CONFIGURED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_CONFIGURED",
+                    "message": "Secret server belum dikonfigurasi (NOT_CONFIGURED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "command_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptInput"
+              },
+              "example": {}
+            }
+          }
+        }
+      }
+    },
+    "/device/commands/{command_id}/result": {
+      "post": {
+        "operationId": "completeCommand",
+        "tags": [
+          "Perangkat"
+        ],
+        "summary": "Kirim hasil eksekusi yang benar-benar diketahui",
+        "description": "Receipt wajib. executed_at dalam created_at..expires_at; hasil boleh dikirim terlambat untuk menyelesaikan unknown. Retry hasil identik idempoten; hasil berbeda 409 RESULT_CONFLICT. Jangan mengulang actuator.",
+        "security": [
+          {
+            "DeviceId": [],
+            "DeviceApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Command"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "command_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                    "device_id": "kelapa-esp32-01",
+                    "type": "unlock",
+                    "duration_seconds": 5,
+                    "fan_on": null,
+                    "config_version": 1,
+                    "created_at": "2026-09-29T03:00:00.000Z",
+                    "expires_at": "2026-09-29T03:00:10.000Z",
+                    "result_deadline": "2026-09-29T03:00:45.000Z",
+                    "received_at": null,
+                    "completed_at": null,
+                    "status": "pending",
+                    "message": null,
+                    "source": "dashboard internal"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body kosong atau JSON tidak valid (INVALID_JSON).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INVALID_JSON",
+                    "message": "Body kosong atau JSON tidak valid (INVALID_JSON)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Kredensial perangkat salah (UNAUTHORIZED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "UNAUTHORIZED",
+                    "message": "Kredensial perangkat salah (UNAUTHORIZED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "DEVICE_ORIGIN",
+                    "message": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Konflik ID, hasil, versi, mode, receipt, atau perintah sejenis (ID_CONFLICT, RESULT_CONFLICT, CONFIG_CONFLICT, CONFIG_NOT_APPLIED, RECEIPT_REQUIRED, MANUAL_MODE_REQUIRED, COMMAND_IN_FLIGHT).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "ID_CONFLICT",
+                    "message": "Konflik ID, hasil, versi, mode, receipt, atau perintah sejenis (ID_CONFLICT, RESULT_CONFLICT, CONFIG_CONFLICT, CONFIG_NOT_APPLIED, RECEIPT_REQUIRED, MANUAL_MODE_REQUIRED, COMMAND_IN_FLIGHT)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "PAYLOAD_TOO_LARGE",
+                    "message": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type harus application/json (CONTENT_TYPE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "CONTENT_TYPE",
+                    "message": "Content-Type harus application/json (CONTENT_TYPE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "example": "60"
+                },
+                "description": "Jumlah detik menunggu sebelum retry."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "RATE_LIMIT",
+                    "message": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Secret server belum dikonfigurasi (NOT_CONFIGURED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_CONFIGURED",
+                    "message": "Secret server belum dikonfigurasi (NOT_CONFIGURED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "command_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionResultInput"
+              },
+              "example": {
+                "status": "succeeded",
+                "executed_at": "2026-09-29T03:00:02.000Z",
+                "message": "Relay simulasi diterapkan; timer lokal aktif."
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/session": {
+      "get": {
+        "operationId": "dashboardSession",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Buat token dan cookie CSRF dashboard",
+        "description": "Buat token dan cookie CSRF dashboard",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Session"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "csrf_token": "TOKEN_DARI_SERVER"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "ssr_csrf=<token>.<signature>; Path=/; HttpOnly; SameSite=Strict; Secure pada URL HTTPS."
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Secret server belum dikonfigurasi (NOT_CONFIGURED).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_CONFIGURED",
+                    "message": "Secret server belum dikonfigurasi (NOT_CONFIGURED)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/summary": {
+      "get": {
+        "operationId": "dashboardSummary",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Ringkasan akses dan lingkungan",
+        "description": "Ringkasan akses dan lingkungan",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Summary"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "mode": "simulation",
+                    "server_time": "2026-09-29T03:00:00.000Z",
+                    "device_id": "kelapa-esp32-01",
+                    "online": true,
+                    "last_contact_at": "2026-09-29T03:00:00.000Z",
+                    "latest_reading": {
+                      "reading_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                      "device_id": "kelapa-esp32-01",
+                      "measured_at": "2026-09-29T03:00:00.000Z",
+                      "received_at": "2026-09-29T03:00:00.000Z",
+                      "status": "ok",
+                      "temperature_c": 30.2,
+                      "humidity_percent": 54.1,
+                      "error_code": null
+                    },
+                    "latest_valid_reading": {
+                      "reading_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                      "device_id": "kelapa-esp32-01",
+                      "measured_at": "2026-09-29T03:00:00.000Z",
+                      "received_at": "2026-09-29T03:00:00.000Z",
+                      "status": "ok",
+                      "temperature_c": 30.2,
+                      "humidity_percent": 54.1,
+                      "error_code": null
+                    },
+                    "sensor_failed": false,
+                    "sensor_stale": false,
+                    "device_status": {
+                      "heartbeat_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                      "device_id": "kelapa-esp32-01",
+                      "reported_at": "2026-09-29T03:00:00.000Z",
+                      "received_at": "2026-09-29T03:00:00.000Z",
+                      "lock_state": "locked",
+                      "fan_on": true,
+                      "fan_mode": "automatic",
+                      "applied_config_version": 1
+                    },
+                    "config": {
+                      "version": 1,
+                      "fan_on_c": 30,
+                      "fan_off_c": 28,
+                      "fan_mode": "automatic",
+                      "unlock_duration_seconds": 5,
+                      "updated_at": "2026-09-29T03:00:00.000Z"
+                    },
+                    "applied_config_version": 1,
+                    "config_synced": true,
+                    "today": {
+                      "total": 1,
+                      "allowed": 0,
+                      "denied": 1
+                    },
+                    "recent_access": [
+                      {
+                        "event_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                        "device_id": "kelapa-esp32-01",
+                        "occurred_at": "2026-09-29T03:00:00.000Z",
+                        "received_at": "2026-09-29T03:00:00.000Z",
+                        "person_id": "KLP-002",
+                        "person_name": "Tamu Simulasi",
+                        "recognition": "known",
+                        "decision": "denied",
+                        "reason": "Dikenal tetapi tidak berizin"
+                      }
+                    ],
+                    "recent_commands": [
+                      {
+                        "command_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                        "device_id": "kelapa-esp32-01",
+                        "type": "unlock",
+                        "duration_seconds": 5,
+                        "fan_on": null,
+                        "config_version": 1,
+                        "created_at": "2026-09-29T03:00:00.000Z",
+                        "expires_at": "2026-09-29T03:00:10.000Z",
+                        "result_deadline": "2026-09-29T03:00:45.000Z",
+                        "received_at": null,
+                        "completed_at": null,
+                        "status": "pending",
+                        "message": null,
+                        "source": "dashboard internal"
+                      }
+                    ],
+                    "intervals": {
+                      "dashboard_poll_seconds": 5,
+                      "sensor_seconds": 10,
+                      "heartbeat_seconds": 10,
+                      "command_poll_seconds": 2,
+                      "offline_after_seconds": 30,
+                      "sensor_stale_seconds": 30
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/access-events": {
+      "get": {
+        "operationId": "accessHistory",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Cari riwayat akses terpaginasikan",
+        "description": "Cari riwayat akses terpaginasikan",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AccessPage"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "items": [
+                      {
+                        "event_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                        "device_id": "kelapa-esp32-01",
+                        "occurred_at": "2026-09-29T03:00:00.000Z",
+                        "received_at": "2026-09-29T03:00:00.000Z",
+                        "person_id": "KLP-002",
+                        "person_name": "Tamu Simulasi",
+                        "recognition": "known",
+                        "decision": "denied",
+                        "reason": "Dikenal tetapi tidak berizin"
+                      }
+                    ],
+                    "total": 1,
+                    "page": 1,
+                    "page_size": 10
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            },
+            "description": "Nomor halaman mulai 1."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            },
+            "description": "Jumlah item per halaman."
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "description": "Pencarian nama, person_id, event_id; wildcard diperlakukan sebagai teks."
+          },
+          {
+            "name": "decision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "allowed",
+                "denied"
+              ]
+            },
+            "description": "Filter keputusan izin."
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Tanggal awal inklusif WIB."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Tanggal akhir inklusif WIB, harus >= from."
+          }
+        ]
+      }
+    },
+    "/dashboard/environment": {
+      "get": {
+        "operationId": "environmentHistory",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Histori sensor, grafik, dan perubahan kipas",
+        "description": "Tabel terpaginasikan; chart disampling hingga 180 titik termasuk titik terakhir. Gagal sensor tetap null. Histori kipas maksimal 50 perubahan berdasarkan heartbeat.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EnvironmentResult"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "readings": [
+                      {
+                        "reading_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                        "device_id": "kelapa-esp32-01",
+                        "measured_at": "2026-09-29T03:00:00.000Z",
+                        "received_at": "2026-09-29T03:00:00.000Z",
+                        "status": "ok",
+                        "temperature_c": 30.2,
+                        "humidity_percent": 54.1,
+                        "error_code": null
+                      }
+                    ],
+                    "total": 1,
+                    "page": 1,
+                    "page_size": 20,
+                    "chart": [
+                      {
+                        "reading_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                        "device_id": "kelapa-esp32-01",
+                        "measured_at": "2026-09-29T03:00:00.000Z",
+                        "received_at": "2026-09-29T03:00:00.000Z",
+                        "status": "ok",
+                        "temperature_c": 30.2,
+                        "humidity_percent": 54.1,
+                        "error_code": null
+                      }
+                    ],
+                    "fan_changes": [],
+                    "config": {
+                      "version": 1,
+                      "fan_on_c": 30,
+                      "fan_off_c": 28,
+                      "fan_mode": "automatic",
+                      "unlock_duration_seconds": 5,
+                      "updated_at": "2026-09-29T03:00:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            },
+            "description": "Nomor halaman mulai 1."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Jumlah item per halaman."
+          },
+          {
+            "name": "hours",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 168,
+              "default": 24
+            },
+            "description": "Rentang jam mundur dari waktu server."
+          }
+        ]
+      }
+    },
+    "/dashboard/commands": {
+      "get": {
+        "operationId": "commandHistory",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Riwayat status perintah",
+        "description": "Riwayat status perintah",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CommandPage"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "items": [
+                      {
+                        "command_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                        "device_id": "kelapa-esp32-01",
+                        "type": "unlock",
+                        "duration_seconds": 5,
+                        "fan_on": null,
+                        "config_version": 1,
+                        "created_at": "2026-09-29T03:00:00.000Z",
+                        "expires_at": "2026-09-29T03:00:10.000Z",
+                        "result_deadline": "2026-09-29T03:00:45.000Z",
+                        "received_at": null,
+                        "completed_at": null,
+                        "status": "pending",
+                        "message": null,
+                        "source": "dashboard internal"
+                      }
+                    ],
+                    "total": 1,
+                    "page": 1,
+                    "page_size": 10
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            },
+            "description": "Nomor halaman mulai 1."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            },
+            "description": "Jumlah item per halaman."
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createCommand",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Buat command kontrol manual",
+        "description": "Simpan command_id yang sama untuk retry request. TTL default10s; durasi unlock dari config. Tidak mengklaim sukses sebelum result. set_fan hanya manual; satu pending/received tiap jenis. Unknown/expired memungkinkan keputusan baru secara eksplisit.",
+        "security": [
+          {
+            "CsrfCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retry identik; mengembalikan catatan yang sama.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Command"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "command_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                    "device_id": "kelapa-esp32-01",
+                    "type": "unlock",
+                    "duration_seconds": 5,
+                    "fan_on": null,
+                    "config_version": 1,
+                    "created_at": "2026-09-29T03:00:00.000Z",
+                    "expires_at": "2026-09-29T03:00:10.000Z",
+                    "result_deadline": "2026-09-29T03:00:45.000Z",
+                    "received_at": null,
+                    "completed_at": null,
+                    "status": "pending",
+                    "message": null,
+                    "source": "dashboard internal"
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Catatan/perintah baru berhasil dibuat.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Command"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "command_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                    "device_id": "kelapa-esp32-01",
+                    "type": "unlock",
+                    "duration_seconds": 5,
+                    "fan_on": null,
+                    "config_version": 1,
+                    "created_at": "2026-09-29T03:00:00.000Z",
+                    "expires_at": "2026-09-29T03:00:10.000Z",
+                    "result_deadline": "2026-09-29T03:00:45.000Z",
+                    "received_at": null,
+                    "completed_at": null,
+                    "status": "pending",
+                    "message": null,
+                    "source": "dashboard internal"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body kosong atau JSON tidak valid (INVALID_JSON).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INVALID_JSON",
+                    "message": "Body kosong atau JSON tidak valid (INVALID_JSON)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INVALID_ORIGIN",
+                    "message": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Konflik ID, hasil, versi, mode, receipt, atau perintah sejenis (ID_CONFLICT, RESULT_CONFLICT, CONFIG_CONFLICT, CONFIG_NOT_APPLIED, RECEIPT_REQUIRED, MANUAL_MODE_REQUIRED, COMMAND_IN_FLIGHT).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "ID_CONFLICT",
+                    "message": "Konflik ID, hasil, versi, mode, receipt, atau perintah sejenis (ID_CONFLICT, RESULT_CONFLICT, CONFIG_CONFLICT, CONFIG_NOT_APPLIED, RECEIPT_REQUIRED, MANUAL_MODE_REQUIRED, COMMAND_IN_FLIGHT)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "PAYLOAD_TOO_LARGE",
+                    "message": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type harus application/json (CONTENT_TYPE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "CONTENT_TYPE",
+                    "message": "Content-Type harus application/json (CONTENT_TYPE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "example": "60"
+                },
+                "description": "Jumlah detik menunggu sebelum retry."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "RATE_LIMIT",
+                    "message": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Origin harus persis terdaftar dalam ALLOWED_ORIGINS."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommandInput"
+              },
+              "example": {
+                "command_id": "70eb06c2-444c-44b1-a1ce-6d6c68430ca5",
+                "type": "unlock"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/config": {
+      "get": {
+        "operationId": "dashboardConfiguration",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Konfigurasi server dan status ACK perangkat",
+        "description": "Konfigurasi server dan status ACK perangkat",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ConfigurationState"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "config": {
+                      "version": 1,
+                      "fan_on_c": 30,
+                      "fan_off_c": 28,
+                      "fan_mode": "automatic",
+                      "unlock_duration_seconds": 5,
+                      "updated_at": "2026-09-29T03:00:00.000Z"
+                    },
+                    "applied_config_version": 1,
+                    "config_synced": true,
+                    "device_id": "kelapa-esp32-01"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateConfiguration",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Simpan konfigurasi dengan versi optimistis",
+        "description": "expected_version harus versi terbaru; konflik409. fan_off_c < fan_on_c. Tersimpan di server belum berarti diterapkan perangkat. Perubahan versi membatalkan pending set_fan versi lama.",
+        "security": [
+          {
+            "CsrfCookie": [],
+            "CsrfHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ConfigurationState"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "config": {
+                      "version": 1,
+                      "fan_on_c": 30,
+                      "fan_off_c": 28,
+                      "fan_mode": "automatic",
+                      "unlock_duration_seconds": 5,
+                      "updated_at": "2026-09-29T03:00:00.000Z"
+                    },
+                    "applied_config_version": 1,
+                    "config_synced": true,
+                    "device_id": "kelapa-esp32-01"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body kosong atau JSON tidak valid (INVALID_JSON).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INVALID_JSON",
+                    "message": "Body kosong atau JSON tidak valid (INVALID_JSON)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INVALID_ORIGIN",
+                    "message": "Origin perangkat/browser atau Origin/CSRF dashboard ditolak (DEVICE_ORIGIN, INVALID_ORIGIN, CROSS_SITE, CSRF_INVALID)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Konflik ID, hasil, versi, mode, receipt, atau perintah sejenis (ID_CONFLICT, RESULT_CONFLICT, CONFIG_CONFLICT, CONFIG_NOT_APPLIED, RECEIPT_REQUIRED, MANUAL_MODE_REQUIRED, COMMAND_IN_FLIGHT).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "ID_CONFLICT",
+                    "message": "Konflik ID, hasil, versi, mode, receipt, atau perintah sejenis (ID_CONFLICT, RESULT_CONFLICT, CONFIG_CONFLICT, CONFIG_NOT_APPLIED, RECEIPT_REQUIRED, MANUAL_MODE_REQUIRED, COMMAND_IN_FLIGHT)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "PAYLOAD_TOO_LARGE",
+                    "message": "Payload lebih dari 16 KiB (PAYLOAD_TOO_LARGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type harus application/json (CONTENT_TYPE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "CONTENT_TYPE",
+                    "message": "Content-Type harus application/json (CONTENT_TYPE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "example": "60"
+                },
+                "description": "Jumlah detik menunggu sebelum retry."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "RATE_LIMIT",
+                    "message": "Batas perangkat 240/menit, mutasi dashboard 120/menit per proses (RATE_LIMIT). Tunggu 60 detik."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Origin harus persis terdaftar dalam ALLOWED_ORIGINS."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigurationInput"
+              },
+              "example": {
+                "expected_version": 1,
+                "fan_on_c": 30,
+                "fan_off_c": 28,
+                "fan_mode": "manual",
+                "unlock_duration_seconds": 5
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/audit": {
+      "get": {
+        "operationId": "auditHistory",
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Audit perubahan konfigurasi dan hasil perintah",
+        "description": "Audit perubahan konfigurasi dan hasil perintah",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Berhasil.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AuditPage"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                },
+                "example": {
+                  "data": {
+                    "items": [],
+                    "total": 0,
+                    "page": 1,
+                    "page_size": 20
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint/metode/command tidak ditemukan (NOT_FOUND).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "Endpoint/metode/command tidak ditemukan (NOT_FOUND)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Validasi gagal (VALIDATION_ERROR, CONFIG_VERSION, EXECUTION_TIME, INVALID_RANGE)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error internal server (INTERNAL_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "Error internal server (INTERNAL_ERROR)."
+                  },
+                  "request_id": "95210317-14cd-44ab-ad67-3c488f303a18"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            },
+            "description": "Nomor halaman mulai 1."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Jumlah item per halaman."
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "DeviceId": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Device-ID"
+      },
+      "DeviceApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      },
+      "CsrfCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "ssr_csrf"
+      },
+      "CsrfHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "path",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "error",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "AccessInput": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          },
+          "person_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "person_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recognition": {
+            "type": "string",
+            "enum": [
+              "known",
+              "unknown"
+            ]
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "allowed",
+              "denied"
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "event_id",
+          "occurred_at",
+          "recognition",
+          "decision"
+        ],
+        "additionalProperties": false
+      },
+      "AccessEvent": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          },
+          "person_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "person_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recognition": {
+            "type": "string",
+            "enum": [
+              "known",
+              "unknown"
+            ]
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "allowed",
+              "denied"
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "device_id": {
+            "type": "string"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          }
+        },
+        "required": [
+          "event_id",
+          "occurred_at",
+          "person_id",
+          "person_name",
+          "recognition",
+          "decision",
+          "reason",
+          "device_id",
+          "received_at"
+        ],
+        "additionalProperties": false
+      },
+      "ReadingInput": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "reading_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "measured_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+              },
+              "status": {
+                "const": "ok"
+              },
+              "temperature_c": {
+                "type": "number",
+                "minimum": -40,
+                "maximum": 80
+              },
+              "humidity_percent": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "error_code": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "reading_id",
+              "measured_at",
+              "status",
+              "temperature_c",
+              "humidity_percent"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "reading_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "measured_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+              },
+              "status": {
+                "const": "error"
+              },
+              "temperature_c": {
+                "type": "null"
+              },
+              "humidity_percent": {
+                "type": "null"
+              },
+              "error_code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            },
+            "required": [
+              "reading_id",
+              "measured_at",
+              "status",
+              "temperature_c",
+              "humidity_percent",
+              "error_code"
+            ],
+            "additionalProperties": false
+          }
+        ],
+        "description": "Status ok memakai angka suhu °C dan RH %, error_code null/absen. Status error mensyaratkan angka null dan error_code nonkosong."
+      },
+      "Reading": {
+        "type": "object",
+        "properties": {
+          "reading_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "device_id": {
+            "type": "string"
+          },
+          "measured_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "error"
+            ]
+          },
+          "temperature_c": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": -40,
+                "maximum": 80
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "humidity_percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "reading_id",
+          "device_id",
+          "measured_at",
+          "received_at",
+          "status",
+          "temperature_c",
+          "humidity_percent",
+          "error_code"
+        ],
+        "additionalProperties": false
+      },
+      "HeartbeatInput": {
+        "type": "object",
+        "properties": {
+          "heartbeat_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reported_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          },
+          "lock_state": {
+            "type": "string",
+            "enum": [
+              "locked",
+              "unlocked",
+              "unknown"
+            ]
+          },
+          "fan_on": {
+            "type": "boolean"
+          },
+          "fan_mode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "manual"
+            ]
+          },
+          "applied_config_version": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "heartbeat_id",
+          "reported_at",
+          "lock_state",
+          "fan_on",
+          "fan_mode",
+          "applied_config_version"
+        ],
+        "additionalProperties": false
+      },
+      "DeviceReport": {
+        "type": "object",
+        "properties": {
+          "heartbeat_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reported_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          },
+          "lock_state": {
+            "type": "string",
+            "enum": [
+              "locked",
+              "unlocked",
+              "unknown"
+            ]
+          },
+          "fan_on": {
+            "type": "boolean"
+          },
+          "fan_mode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "manual"
+            ]
+          },
+          "applied_config_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "device_id": {
+            "type": "string"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          }
+        },
+        "required": [
+          "heartbeat_id",
+          "reported_at",
+          "lock_state",
+          "fan_on",
+          "fan_mode",
+          "applied_config_version",
+          "device_id",
+          "received_at"
+        ],
+        "additionalProperties": false
+      },
+      "Configuration": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "fan_on_c": {
+            "type": "number",
+            "minimum": -39,
+            "maximum": 80
+          },
+          "fan_off_c": {
+            "type": "number",
+            "minimum": -40,
+            "maximum": 79
+          },
+          "fan_mode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "manual"
+            ]
+          },
+          "unlock_duration_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          }
+        },
+        "required": [
+          "version",
+          "fan_on_c",
+          "fan_off_c",
+          "fan_mode",
+          "unlock_duration_seconds",
+          "updated_at"
+        ],
+        "additionalProperties": false
+      },
+      "ConfigurationInput": {
+        "type": "object",
+        "properties": {
+          "expected_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "fan_on_c": {
+            "type": "number",
+            "minimum": -39,
+            "maximum": 80
+          },
+          "fan_off_c": {
+            "type": "number",
+            "minimum": -40,
+            "maximum": 79
+          },
+          "fan_mode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "manual"
+            ]
+          },
+          "unlock_duration_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          }
+        },
+        "required": [
+          "expected_version",
+          "fan_on_c",
+          "fan_off_c",
+          "fan_mode",
+          "unlock_duration_seconds"
+        ],
+        "additionalProperties": false,
+        "description": "fan_off_c wajib lebih kecil daripada fan_on_c. expected_version harus sama dengan versi server saat penyimpanan."
+      },
+      "ConfigurationState": {
+        "type": "object",
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/Configuration"
+          },
+          "applied_config_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "config_synced": {
+            "type": "boolean"
+          },
+          "device_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "config",
+          "applied_config_version",
+          "config_synced",
+          "device_id"
+        ],
+        "additionalProperties": false
+      },
+      "AckInput": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "AckResult": {
+        "type": "object",
+        "properties": {
+          "applied_config_version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "applied_config_version"
+        ],
+        "additionalProperties": false
+      },
+      "CommandInput": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "command_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "type": {
+                "const": "unlock"
+              }
+            },
+            "required": [
+              "command_id",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "command_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "type": {
+                "const": "set_fan"
+              },
+              "fan_on": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "command_id",
+              "type",
+              "fan_on"
+            ],
+            "additionalProperties": false
+          }
+        ],
+        "description": "Durasi unlock diambil server dari konfigurasi. set_fan hanya dalam mode manual."
+      },
+      "Command": {
+        "type": "object",
+        "properties": {
+          "command_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "device_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "unlock",
+              "set_fan"
+            ]
+          },
+          "duration_seconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 30
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fan_on": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "config_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          },
+          "result_deadline": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          },
+          "received_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "received",
+              "succeeded",
+              "failed",
+              "expired",
+              "unknown"
+            ]
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "const": "dashboard internal"
+          }
+        },
+        "required": [
+          "command_id",
+          "device_id",
+          "type",
+          "duration_seconds",
+          "fan_on",
+          "config_version",
+          "created_at",
+          "expires_at",
+          "result_deadline",
+          "received_at",
+          "completed_at",
+          "status",
+          "message",
+          "source"
+        ],
+        "additionalProperties": false
+      },
+      "ReceiptInput": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "ReceiptResult": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "$ref": "#/components/schemas/Command"
+          },
+          "execute_allowed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "command",
+          "execute_allowed"
+        ],
+        "additionalProperties": false,
+        "description": "Hanya receipt pertama sebelum TTL boleh menghasilkan execute_allowed true. Retry respons ambigu tidak boleh mengeksekusi aktuator."
+      },
+      "ExecutionResultInput": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "succeeded",
+              "failed"
+            ]
+          },
+          "executed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 500,
+            "default": ""
+          }
+        },
+        "required": [
+          "status",
+          "executed_at"
+        ],
+        "additionalProperties": false,
+        "description": "executed_at adalah awal aktuasi, wajib created_at <= executed_at <= expires_at. Receipt wajib sudah tercatat. Hasil terlambat dapat menyelesaikan unknown; actuator tidak diulang."
+      },
+      "FanChange": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reported_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          },
+          "fan_on": {
+            "type": "boolean"
+          },
+          "fan_mode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "manual"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "reported_at",
+          "fan_on",
+          "fan_mode"
+        ],
+        "additionalProperties": false
+      },
+      "AuditEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "action": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          },
+          "device_id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "command_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "created_at",
+          "device_id",
+          "source",
+          "command_id",
+          "detail"
+        ],
+        "additionalProperties": false
+      },
+      "AccessPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessEvent"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "additionalProperties": false
+      },
+      "CommandPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Command"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "additionalProperties": false
+      },
+      "AuditPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEntry"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "additionalProperties": false
+      },
+      "EnvironmentResult": {
+        "type": "object",
+        "properties": {
+          "readings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Reading"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "chart": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Reading"
+            },
+            "maxItems": 180
+          },
+          "fan_changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FanChange"
+            },
+            "maxItems": 50
+          },
+          "config": {
+            "$ref": "#/components/schemas/Configuration"
+          }
+        },
+        "required": [
+          "readings",
+          "total",
+          "page",
+          "page_size",
+          "chart",
+          "fan_changes",
+          "config"
+        ],
+        "additionalProperties": false
+      },
+      "Summary": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "simulation",
+              "real"
+            ]
+          },
+          "server_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+          },
+          "device_id": {
+            "type": "string"
+          },
+          "online": {
+            "type": "boolean"
+          },
+          "last_contact_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 berzona waktu; request dinormalisasi ke UTC Z. Maksimal 30 detik di masa depan."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_valid_reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sensor_failed": {
+            "type": "boolean"
+          },
+          "sensor_stale": {
+            "type": "boolean"
+          },
+          "device_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeviceReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "config": {
+            "$ref": "#/components/schemas/Configuration"
+          },
+          "applied_config_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "config_synced": {
+            "type": "boolean"
+          },
+          "today": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "allowed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "denied": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "total",
+              "allowed",
+              "denied"
+            ],
+            "additionalProperties": false
+          },
+          "recent_access": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessEvent"
+            },
+            "maxItems": 6
+          },
+          "recent_commands": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Command"
+            },
+            "maxItems": 6
+          },
+          "intervals": {
+            "type": "object",
+            "properties": {
+              "dashboard_poll_seconds": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "sensor_seconds": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "heartbeat_seconds": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "command_poll_seconds": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "offline_after_seconds": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "sensor_stale_seconds": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "dashboard_poll_seconds",
+              "sensor_seconds",
+              "heartbeat_seconds",
+              "command_poll_seconds",
+              "offline_after_seconds",
+              "sensor_stale_seconds"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "mode",
+          "server_time",
+          "device_id",
+          "online",
+          "last_contact_at",
+          "latest_reading",
+          "latest_valid_reading",
+          "sensor_failed",
+          "sensor_stale",
+          "device_status",
+          "config",
+          "applied_config_version",
+          "config_synced",
+          "today",
+          "recent_access",
+          "recent_commands",
+          "intervals"
+        ],
+        "additionalProperties": false
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "csrf_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "csrf_token"
+        ],
+        "additionalProperties": false
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "const": "ok"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "simulation",
+              "real"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "mode"
+        ],
+        "additionalProperties": false
+      },
+      "AccessAccepted": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "duplicate": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "event_id",
+          "duplicate"
+        ],
+        "additionalProperties": false
+      },
+      "ReadingAccepted": {
+        "type": "object",
+        "properties": {
+          "reading_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "duplicate": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "reading_id",
+          "duplicate"
+        ],
+        "additionalProperties": false
+      },
+      "HeartbeatAccepted": {
+        "type": "object",
+        "properties": {
+          "heartbeat_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "duplicate": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "heartbeat_id",
+          "duplicate"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}
