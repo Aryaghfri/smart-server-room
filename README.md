@@ -15,7 +15,11 @@ API Mas Togar tetap digunakan perangkat. Web membaca MySQL melalui akun SELECT. 
 
 Panduan utama: **[PANDUAN-TOGAR.md](docs/PANDUAN-TOGAR.md)** — setup, arti data, email, pengujian, peta file/fungsi, dan troubleshooting.
 
-Firmware ESP32 dari tim IoT ada di **[firmware/](firmware/README.md)**.
+Firmware ESP32 dari tim IoT ada di **[firmware/](firmware/README.md)**, API Flask penerima data di **[api-flask/](api-flask/README.md)**.
+
+### Prediksi suhu besok (model ML)
+
+Ringkasan dashboard menampilkan **prediksi suhu besok untuk pagi, siang, dan malam**. Model ML mengisi tabel MySQL `prediksi_suhu` (buat dengan [api-flask/prediksi_suhu.sql](api-flask/prediksi_suhu.sql)); worker membacanya dengan SELECT setiap putaran dan memakai baris terbaru per waktu untuk tanggal besok (WIB). Selama tabel belum ada atau belum berisi data besok, kartu menampilkan *Menunggu prediksi*.
 
 ## Menjalankan dari Windows
 

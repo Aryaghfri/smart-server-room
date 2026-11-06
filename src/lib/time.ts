@@ -9,6 +9,12 @@ export function now() {
 export function isoNow() {
   return now().toISOString();
 }
+/** Tanggal besok menurut WIB, format YYYY-MM-DD (sama dengan kolom DATE MySQL). */
+export function tomorrowWib() {
+  return new Date(now().getTime() + 7 * 3600000 + 86400000)
+    .toISOString()
+    .slice(0, 10);
+}
 export function todayWibBounds() {
   const day = new Date(now().getTime() + 7 * 3600000)
     .toISOString()

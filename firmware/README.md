@@ -16,7 +16,7 @@ Library: `DHT sensor library` (Adafruit). `WiFi.h` dan `HTTPClient.h` sudah term
 
 ## Alur data
 
-Setiap 5 detik ESP32 membaca sensor lalu mengirim `POST` JSON ke API Flask Mas Togar (`SERVER_URL`), yang menyimpannya ke MySQL `iot_binus`. Dashboard web tidak menerima data langsung dari ESP32; worker web membaca MySQL.
+Setiap 5 detik ESP32 membaca sensor lalu mengirim `POST` JSON ke API Flask Mas Togar (`SERVER_URL`, kode di [api-flask/](../api-flask/README.md)), yang menyimpannya ke MySQL `iot_binus`. Dashboard web tidak menerima data langsung dari ESP32; worker web membaca MySQL.
 
 ```json
 { "suhu": 31.2, "kelembapan": 67.0, "kipas": 1, "gerakan": 0, "nilai_asap": 1450, "asap": 0 }

@@ -24,10 +24,14 @@ import {
   Lightbulb,
   Mail,
   Menu,
+  Moon,
   Radio,
   RefreshCw,
   Server,
   Settings2,
+  Sparkles,
+  Sun,
+  Sunrise,
   Thermometer,
   UsersRound,
   Waves,
@@ -47,7 +51,9 @@ import {
   YAxis,
 } from "recharts";
 import type {
+  ForecastPeriod,
   MonitorSummary,
+  TemperatureForecast,
   Recipient,
   SensorRecord,
   SmokeIncident,
@@ -138,6 +144,67 @@ function Freshness({
         ? `${stale ? "Data lama · " : ""}${time(record.measured_at, true)} WIB`
         : "Menunggu data perangkat"}
     </span>
+  );
+}
+const forecastPeriods: {
+  id: ForecastPeriod;
+  name: string;
+  icon: typeof Sun;
+  tone: string;
+}[] = [
+  { id: "pagi", name: "Pagi", icon: Sunrise, tone: "pale-orange" },
+  { id: "siang", name: "Siang", icon: Sun, tone: "pale-red" },
+  { id: "malam", name: "Malam", icon: Moon, tone: "pale-blue" },
+];
+/** Prediksi suhu besok dari model ML Mas Togar (tabel MySQL prediksi_suhu). */
+function ForecastPanel({
+  forecast,
+}: {
+  forecast: TemperatureForecast | null;
+}) {
+  const day = forecast
+    ? new Intl.DateTimeFormat("id-ID", {
+        timeZone: "UTC",
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(`${forecast.tanggal}T00:00:00Z`))
+    : null;
+  return (
+    <section className="v2-panel v2-forecast" aria-label="Prediksi suhu besok">
+      <div className="v2-panel-heading">
+        <div>
+          <h2>Prediksi suhu besok</h2>
+          <p>{day ?? "Hasil model machine learning"}</p>
+        </div>
+        <Chip tone={forecast ? "teal" : "gray"}>
+          {forecast ? "Model ML" : "Menunggu prediksi"}
+        </Chip>
+      </div>
+      <div className="v2-forecast-grid">
+        {forecastPeriods.map(({ id, name, icon: Icon, tone }) => (
+          <div className="v2-forecast-item" key={id}>
+            <span className={`v2-icon ${tone}`}>
+              <Icon size={19} />
+            </span>
+            <div>
+              <span className="v2-forecast-label">{name}</span>
+              <div className="v2-forecast-value">
+                {number(forecast?.suhu[id])}
+                <small>°C</small>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="v2-forecast-note">
+        <Sparkles size={13} />
+        {forecast
+          ? `Diperbarui ${time(forecast.updated_at, true)} WIB`
+          : "Belum ada hasil prediksi untuk besok. Model ML akan mengisi tabel prediksi_suhu di MySQL."}
+      </p>
+    </section>
   );
 }
 function SensorValue({ record }: { record: SensorRecord }) {
@@ -600,6 +667,7 @@ export default function MonitoringDashboard() {
                       <Freshness record={mq} stale={data.stale.mq} />
                     </article>
                   </section>
+                  <ForecastPanel forecast={data.forecast ?? null} />
                   <div className="v2-overview-grid">
                     <section className="v2-panel v2-chart-panel">
                       <div className="v2-panel-heading">
