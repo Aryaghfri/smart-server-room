@@ -6,8 +6,8 @@
 // =========================
 // WIFI DAN SERVER FLASK
 // =========================
-const char* WIFI_SSID = "";
-const char* WIFI_PASSWORD = "";
+const char* WIFI_SSID = "Togar";
+const char* WIFI_PASSWORD = "@Togar1234560987";
 const char* SERVER_URL = "http://192.168.0.104:5000/api/data";
 
 // =========================

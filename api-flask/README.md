@@ -5,13 +5,11 @@
 ## Menjalankan
 
 ```powershell
-pip install -r requirements.txt
-$env:MYSQL_USER = "root"
-$env:MYSQL_PASSWORD = "password_mysql"
+pip install flask mysql-connector-python
 python app.py
 ```
 
-Server berjalan di port `5000`. Variabel lain: `MYSQL_HOST` (default `localhost`), `MYSQL_DATABASE` (default `iot_binus`), `FLASK_DEBUG=1` untuk mode debug saat pengembangan saja.
+Koneksi MySQL diatur di `DB_CONFIG` pada `app.py` (default `localhost`, user `root`, database `iot_binus`). Server berjalan di port `5000` dengan mode debug aktif.
 
 ## Endpoint
 

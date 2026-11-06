@@ -1,19 +1,15 @@
 
-import os
-
 from flask import Flask, jsonify, request
 import mysql.connector
 from datetime import datetime
 
 app = Flask(__name__)
 
-# Kredensial MySQL dibaca dari environment, jangan ditulis di kode (repo ini public).
-# Contoh (PowerShell): $env:MYSQL_PASSWORD = "password_mysql"
 DB_CONFIG = {
-    "host": os.environ.get("MYSQL_HOST", "localhost"),
-    "user": os.environ.get("MYSQL_USER", "root"),
-    "password": os.environ.get("MYSQL_PASSWORD", ""),
-    "database": os.environ.get("MYSQL_DATABASE", "iot_binus")
+    "host": "localhost",
+    "user": "root",
+    "password": "root",  # Isi password MySQL jika ada
+    "database": "iot_binus"
 }
 
 
@@ -223,10 +219,8 @@ def receive_data():
 
 
 if __name__ == "__main__":
-    # Debugger Flask bisa menjalankan kode dari jaringan; aktifkan hanya saat
-    # pengembangan dengan FLASK_DEBUG=1.
     app.run(
         host="0.0.0.0",
         port=5000,
-        debug=os.environ.get("FLASK_DEBUG") == "1"
+        debug=True
     )

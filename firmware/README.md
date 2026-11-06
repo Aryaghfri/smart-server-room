@@ -32,7 +32,7 @@ Penyimpanan ke MySQL dilakukan oleh API Mas Togar; pemetaan berikut mengikuti ar
 
 ## Sebelum upload
 
-Isi `WIFI_SSID`, `WIFI_PASSWORD`, dan `SERVER_URL` sesuai jaringan. **Jangan commit password WiFi** ke git; kosongkan lagi sebelum push.
+Sesuaikan `WIFI_SSID`, `WIFI_PASSWORD`, dan `SERVER_URL` (alamat IP laptop yang menjalankan API Flask) dengan jaringan yang dipakai.
 
 ## Catatan
 
