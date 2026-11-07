@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import mysql, { type Pool, type RowDataPacket } from "mysql2/promise";
-import { adaptLegacyRow, legacyTime, type LegacyRow } from "./legacy-adapter";
+import { adaptLegacyRow, type LegacyRow } from "./legacy-adapter";
 import {
   execute,
   one,
@@ -9,12 +9,8 @@ import {
   state,
   type IncomingRecord,
 } from "./monitoring-store";
-import { isoNow, tomorrowWib } from "./time";
-import type {
-  ForecastPeriod,
-  SensorKind,
-  TemperatureForecast,
-} from "./monitoring-types";
+import { isoNow } from "./time";
+import type { SensorKind } from "./monitoring-types";
 
 let pool: Pool | null = null;
 /** Akses MySQL hanya SELECT. Schema dan data Mas Togar tidak diubah oleh dashboard. */
@@ -140,13 +136,6 @@ export async function syncMySql(
       failures.push(`${kind}: ${code}`);
     }
   }
-  try {
-    await syncForecast(database);
-  } catch (error) {
-    failures.push(
-      `prediksi_suhu: ${String((error as { code?: string }).code || "SYNC_ERROR")}`,
-    );
-  }
   setState("mysql_last_sync", isoNow());
   setState(
     "mysql_error",
@@ -155,51 +144,6 @@ export async function syncMySql(
       : "",
   );
   return total;
-}
-/**
- * Prediksi suhu besok dari model ML Mas Togar (tabel prediksi_suhu: tanggal, waktu, suhu).
- * Setiap waktu (pagi/siang/malam) memakai baris terbaru. Tabel opsional: jika belum dibuat,
- * dashboard menampilkan "menunggu prediksi" tanpa pesan error.
- */
-async function syncForecast(database: Pick<Pool, "execute">) {
-  const tanggal = tomorrowWib();
-  let batch: RowDataPacket[];
-  try {
-    [batch] = await database.execute<RowDataPacket[]>({
-      sql: "SELECT waktu,suhu,create_date FROM `prediksi_suhu` WHERE tanggal=? ORDER BY id DESC LIMIT 50",
-      values: [tanggal],
-      timeout: 5000,
-    });
-  } catch (error) {
-    if ((error as { code?: string }).code === "ER_NO_SUCH_TABLE") {
-      setState("forecast", "");
-      return;
-    }
-    throw error;
-  }
-  const result: TemperatureForecast = {
-    tanggal,
-    updated_at: null,
-    suhu: { pagi: null, siang: null, malam: null },
-  };
-  for (const row of batch) {
-    const waktu = String(row.waktu ?? "").trim().toLowerCase() as ForecastPeriod;
-    if (!(waktu in result.suhu) || result.suhu[waktu] !== null) continue;
-    const suhu = Number(row.suhu);
-    if (String(row.suhu ?? "").trim() === "" || !Number.isFinite(suhu) || suhu < -40 || suhu > 80)
-      continue;
-    result.suhu[waktu] = suhu;
-    let created: string | null = null;
-    try {
-      created = legacyTime(row.create_date);
-    } catch {
-      // Waktu pembuatan hanya informasi; prediksi tetap ditampilkan.
-    }
-    if (created && (!result.updated_at || created > result.updated_at))
-      result.updated_at = created;
-  }
-  const filled = Object.values(result.suhu).some((value) => value !== null);
-  setState("forecast", filled ? JSON.stringify(result) : "");
 }
 export async function closeMySql() {
   if (pool) {

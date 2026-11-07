@@ -3,7 +3,7 @@ import type { SQLInputValue } from "node:sqlite";
 import { getDb, transaction } from "./db";
 import { settings } from "./env";
 import { ApiError } from "./security";
-import { isoNow, todayWibBounds, tomorrowWib } from "./time";
+import { isoNow, todayWibBounds } from "./time";
 import type {
   MonitorConfig,
   MonitorSummary,
@@ -11,7 +11,6 @@ import type {
   SensorKind,
   SensorRecord,
   SmokeIncident,
-  TemperatureForecast,
 } from "./monitoring-types";
 
 export type IncomingRecord = Omit<SensorRecord, "received_at">;
@@ -196,15 +195,6 @@ export function incidentList(limit = 20, offset = 0): SmokeIncident[] {
   }));
 }
 /** Ringkasan memisahkan deteksi PIR, target LED, dan laporan LED fisik yang belum tersedia. */
-/** Prediksi disimpan worker sebagai JSON; yang ditampilkan hanya prediksi untuk besok. */
-function forecast(): TemperatureForecast | null {
-  try {
-    const value = JSON.parse(state("forecast") || "null") as TemperatureForecast | null;
-    return value?.tanggal === tomorrowWib() ? value : null;
-  } catch {
-    return null;
-  }
-}
 export function summary(): MonitorSummary {
   const env = settings();
   const d = one<{
@@ -219,7 +209,6 @@ export function summary(): MonitorSummary {
     "SELECT record_key,kind,source,source_id,measured_at,received_at,suhu,kelembapan,status,lamp_on,error_code FROM sensor_records WHERE kind='dht' ORDER BY measured_at DESC,rowid DESC LIMIT 120",
   ).reverse();
   return {
-    forecast: forecast(),
     dashboard_poll_seconds: env.dashboardPoll,
     mode: env.mode,
     data_source: dataSource(),

@@ -30,4 +30,3 @@ Satu request menyimpan tiga baris sekaligus dalam satu transaksi: `dht` (suhu, k
 ## File lain
 
 - `iot_binus.sql` — dump database terbaru (1 November 2026, 2031 baris per tabel).
-- `prediksi_suhu.sql` — tabel untuk hasil model ML; dashboard menampilkan prediksi suhu besok (pagi, siang, malam) dari tabel ini.

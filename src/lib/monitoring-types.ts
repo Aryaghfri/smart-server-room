@@ -39,15 +39,7 @@ export interface SmokeIncident {
     detail: string | null;
   }[];
 }
-export type ForecastPeriod = "pagi" | "siang" | "malam";
-/** Hasil model ML Mas Togar dari tabel MySQL prediksi_suhu untuk tanggal besok (WIB). */
-export interface TemperatureForecast {
-  tanggal: string;
-  updated_at: string | null;
-  suhu: Record<ForecastPeriod, number | null>;
-}
 export interface MonitorSummary {
-  forecast: TemperatureForecast | null;
   dashboard_poll_seconds: number;
   mode: "simulation" | "real";
   data_source: "api" | "mysql";

@@ -34,9 +34,6 @@ class MockSqlReader {
   tables: Record<SensorKind, LegacyRow[]> = { dht: [], pir: [], mq: [] };
   calls: SqlCall[] = [];
   failTables = new Set<SensorKind>();
-  /** null = tabel prediksi_suhu belum dibuat Mas Togar. */
-  forecast: Record<string, unknown>[] | null = null;
-  forecastQueries: unknown[][] = [];
 
   private inspect(method: "query" | "execute", options: SqlRequest) {
     assert.match(
@@ -72,21 +69,6 @@ class MockSqlReader {
   }
 
   async execute(options: SqlRequest) {
-    if (/\bFROM\s+`prediksi_suhu`/i.test(options.sql)) {
-      assert.match(options.sql, /^SELECT\s/i);
-      this.forecastQueries.push([...(options.values ?? [])]);
-      if (this.forecast === null)
-        throw Object.assign(new Error("Table doesn't exist"), {
-          code: "ER_NO_SUCH_TABLE",
-        });
-      const tanggal = options.values?.[0];
-      return [
-        this.forecast
-          .filter((row) => row.tanggal === tanggal)
-          .sort((left, right) => Number(right.id) - Number(left.id)),
-        [],
-      ];
-    }
     const kind = this.inspect("execute", options);
     const comparison = options.sql.match(/\bWHERE\s+id\s*(>=|>)\s*\?/i);
     assert.ok(
@@ -394,27 +376,4 @@ test("record baru dengan waktu pengukuran usang tidak mengirim alarm atau membua
   assert.equal(count("smoke_incidents"), 0);
   assert.equal(count("email_outbox"), 0);
   assert.equal(typeof state("mysql_last_sync"), "string");
-});
-
-test("prediksi suhu besok: baris terbaru per waktu, tabel belum ada tidak dianggap error", async () => {
-  const reader = new MockSqlReader();
-  await sync(reader);
-  assert.equal(summary().forecast, null);
-  assert.equal(state("mysql_error"), "");
-
-  const besok = reader.forecastQueries[0][0] as string;
-  assert.match(besok, /^\d{4}-\d{2}-\d{2}$/);
-  reader.forecast = [
-    { id: 1, tanggal: besok, waktu: "pagi", suhu: "27.0", create_date: mysqlTime() },
-    { id: 2, tanggal: besok, waktu: "pagi", suhu: "26.4", create_date: mysqlTime() },
-    { id: 3, tanggal: besok, waktu: "Siang", suhu: 31.8, create_date: mysqlTime() },
-    { id: 4, tanggal: besok, waktu: "malam", suhu: "bukan angka", create_date: mysqlTime() },
-    { id: 5, tanggal: "2000-01-01", waktu: "malam", suhu: "20", create_date: mysqlTime() },
-  ];
-  await sync(reader);
-  const forecast = summary().forecast;
-  assert.equal(forecast?.tanggal, besok);
-  assert.deepEqual(forecast?.suhu, { pagi: 26.4, siang: 31.8, malam: null });
-  assert.equal(typeof forecast?.updated_at, "string");
-  assert.equal(state("mysql_error"), "");
 });
